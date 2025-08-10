@@ -205,3 +205,9 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Ignore all PyTorch model checkpoint files
+*.pth
+
+# Ignore the painting_classify folder
+painting_classify/

@@ -85,7 +85,8 @@ def main():
         "['Early Renaissance']": "['Renaissance']",
         "['High Renaissance']": "['Renaissance']",
         "['New Realism']": "['Realism']",
-        "['Contemporary Realism']": "['Realism']"
+        "['Contemporary Realism']": "['Realism']",
+        "['Fauvism']": "['Expressionism']"
     }
 
     print("!!!\n!!!")
@@ -116,22 +117,20 @@ def main():
     model.fc = torch.nn.Linear(model.fc.in_features, num_classes)
     model.load_state_dict(state)
     model.to(device)
-    y_true, y_pred, paths = [], [], []
+    y_true, y_pred = [], []
 
     model.eval()
     with torch.no_grad():
-        for images, labels, img_paths in test_loader:
+        for images, labels in test_loader:
             images = images.to(device)
             logits = model(images)
             preds = logits.argmax(dim=1).cpu().numpy()
             y_pred.extend(preds)
             y_true.extend(labels.numpy())
-            paths.extend(img_paths)
 
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
 
-    # Per-class accuracy
     num_classes = len(le.classes_)
     per_class_total = np.bincount(y_true, minlength=num_classes)
     per_class_correct = np.bincount(y_true[y_true == y_pred], minlength=num_classes)

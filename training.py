@@ -92,7 +92,8 @@ def main():
         "['Early Renaissance']": "['Renaissance']",
         "['High Renaissance']": "['Renaissance']",
         "['New Realism']": "['Realism']",
-        "['Contemporary Realism']": "['Realism']"
+        "['Contemporary Realism']": "['Realism']",
+        "['Fauvism']": "['Expressionism']"
     }
 
     print("!!!\n!!!")
@@ -202,7 +203,7 @@ def main():
 
     print(f"Test Accuracy: {100 * correct / total:.2f}%")
 
-    torch.save(model.state_dict(), "resnet34_wikiart_final.pth")
+    torch.save(model.state_dict(), "resnet34_wikiart_second_final.pth")
 
     end_time = time.time()
     total_time = end_time - start_time

@@ -110,7 +110,7 @@ def main():
     batch_size = 32
     test_loader = DataLoader(test_dataset, batch_size, shuffle = False, num_workers=num_workers, persistent_workers=persistent_workers)
 
-    state = torch.load("resnet34_wikiart_final.pth", map_location=device)
+    state = torch.load("resnet34_wikiart_second_final.pth", map_location=device)
     num_classes = state["fc.weight"].shape[0]       # infer from checkpoint
 
     model = models.resnet34(weights=None)

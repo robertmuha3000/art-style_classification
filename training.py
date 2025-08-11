@@ -15,6 +15,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from torchvision.transforms import InterpolationMode, RandAugment
 import torch.optim.lr_scheduler as lr_scheduler
 import numpy as np
+import pickle
 
 class CustomDataset(Dataset):
     def __init__(self, data, img_dir, transform = None):
@@ -72,8 +73,7 @@ def main():
         transforms.Resize(256, interpolation=InterpolationMode.BICUBIC, antialias=True),
         transforms.CenterCrop(224),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225]),
-        transforms.RandomErasing(p=0.25)
+        transforms.Normalize(mean=[0.485,0.456,0.406], std=[0.229,0.224,0.225])
     ])
 
     # blend genres together later
@@ -124,6 +124,9 @@ def main():
 
     model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet34', pretrained=True)
     model.fc = torch.nn.Linear(model.fc.in_features, len(le.classes_))
+
+    with open("label_encoder.pkl", "wb") as f:
+        pickle.dump(le, f)
 
     model = model.to(device)
 

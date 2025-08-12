@@ -6,13 +6,12 @@ import time
 
 from data import load_csv, preprocessing, create_dataloader, save_le
 from model import create_model, freeze_backbone_keep_fc_trainable, unfreeze_layer3_layer4_and_fc, make_param_groups
-from config import MODEL_PATH
+from config import MODEL_PATH, TRAIN_EPOCHS, HEAD_EPOCHS, TRAINING_LOSS
 
-def head_training(model, train_loader, device):
-    loss_fn = torch.nn.CrossEntropyLoss(label_smoothing=0.1)
+def head_training(model, train_loader, device, epochs=HEAD_EPOCHS, loss_fn=TRAINING_LOSS):
     optimizer_head = torch.optim.AdamW(model.fc.parameters(), lr=1e-3, weight_decay=0.01)
 
-    for epoch in range(3):
+    for epoch in range(epochs):
         model.train()
         epoch_loss = 0
         for X, y in tqdm(train_loader, desc=f"Head epoch {epoch + 1}", leave=False):
@@ -32,13 +31,13 @@ def head_training(model, train_loader, device):
         print(f"Head epoch {epoch + 1} complete. Avg Loss: {avg_loss:.4f}")
     print("Head training completed!")
 
-def save_model(model):
-    torch.save(model.state_dict(), MODEL_PATH)
 
-def main_training(model, train_loader, test_loader, param_groups, device):
-    loss_fn = torch.nn.CrossEntropyLoss(label_smoothing=0.1)
+def save_model(model, model_path = MODEL_PATH):
+    torch.save(model.state_dict(), model_path)
+
+
+def main_training(model, train_loader, param_groups, device, epochs=TRAIN_EPOCHS, loss_fn=TRAINING_LOSS):
     optimizer = torch.optim.AdamW(param_groups, weight_decay=0.01)
-    epochs = 12
     scheduler = lr_scheduler.CosineAnnealingLR(optimizer=optimizer, T_max=epochs * len(train_loader))
     start_time = time.time()
     for epoch in range(epochs):
@@ -72,7 +71,6 @@ def train_model():
     df_clean = preprocessing(df, le, fit=True)
     df_train = df_clean[df_clean["subset"] == "train"].reset_index(drop=True)
     df_test = df_clean[df_clean["subset"] == "test"].reset_index(drop=True)
-    test_loader = create_dataloader(df_test, train=False)
     train_loader = create_dataloader(df_train, train=True)
     model = create_model(num_classes=len(le.classes_), device=device)
     freeze_backbone_keep_fc_trainable(model)
@@ -80,7 +78,7 @@ def train_model():
     unfreeze_layer3_layer4_and_fc(model)
     pg = make_param_groups(model)
     save_le(le)
-    main_training(model, train_loader, test_loader, pg, device)
+    main_training(model, train_loader, pg, device)
 
 if __name__ == "__main__":
     train_model()

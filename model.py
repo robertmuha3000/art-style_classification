@@ -7,7 +7,7 @@ def create_model(num_classes: int, device: torch.device, pretrained: bool = True
     and move to device.
     """
     model = torch.hub.load('pytorch/vision:v0.10.0', 'resnet34', pretrained=pretrained)
-    model.fc = nn.Linear(model.fc.in_features, num_classes)
+    model.fc = nn.Sequential(nn.Dropout(p=0.25), nn.Linear(model.fc.in_features, num_classes))
     model = model.to(device)
     return model
 

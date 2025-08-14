@@ -8,6 +8,6 @@ HEAD_EPOCHS = 3
 TRAIN_EPOCHS = 12
 CSV_PATH = "classes.csv"
 IMAGE_ROOT = "painting_classify/archive-3/"
-MODEL_PATH = "resnet34_wikiart_third_final.pth"
+MODEL_PATH = "resnet34_wikiart_uncertainty.pth"
 LABEL_ENCODER_PATH = "label_encoder.pkl"
 TRAINING_LOSS = torch.nn.CrossEntropyLoss(label_smoothing=0.1)

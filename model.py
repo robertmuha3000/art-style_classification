@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-def create_model(num_classes: int, device: torch.device, pretrained: bool = True):
+def create_model(num_classes: int, device: torch.device, pretrained: bool = True) -> nn.Module:
     """
     Load ResNet34 from the same hub tag you used, replace the final layer,
     and move to device.
@@ -11,7 +11,7 @@ def create_model(num_classes: int, device: torch.device, pretrained: bool = True
     model = model.to(device)
     return model
 
-def freeze_backbone_keep_fc_trainable(model):
+def freeze_backbone_keep_fc_trainable(model: nn.Module) -> None:
     """
     Freeze all params, unfreeze only the final fc layer (head training phase).
     """
@@ -20,7 +20,7 @@ def freeze_backbone_keep_fc_trainable(model):
     for p in model.fc.parameters():
         p.requires_grad = True
 
-def unfreeze_layer3_layer4_and_fc(model):
+def unfreeze_layer3_layer4_and_fc(model: nn.Module) -> None:
     """
     Unfreeze layer4, layer3, and fc (fine-tuning phase), keep others frozen.
     """
@@ -31,7 +31,7 @@ def unfreeze_layer3_layer4_and_fc(model):
     for p in model.fc.parameters():
         p.requires_grad = True
 
-def make_param_groups(model, lr_backbone: float = 1e-4, lr_head: float = 3e-4):
+def make_param_groups(model: nn.Module, lr_backbone: float = 1e-4, lr_head: float = 3e-4) -> dict:
     """
     Return optimizer param groups exactly like your script (layer4, layer3, fc).
     """
@@ -42,7 +42,7 @@ def make_param_groups(model, lr_backbone: float = 1e-4, lr_head: float = 3e-4):
     ]
     return pg
 
-def load_state(model, checkpoint_path: str, device: torch.device, strict: bool = True):
+def load_state(model: nn.Module, checkpoint_path: str, device: torch.device, strict: bool = True) -> nn.Module:
     """
     Load a state_dict saved with torch.save(model.state_dict(), ...).
     """

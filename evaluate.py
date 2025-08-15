@@ -6,8 +6,15 @@ import numpy as np
 from tqdm import tqdm
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
+from sklearn.preprocessing import LabelEncoder
 
-def mc_dropout(model, device, test_loader, samples=50):
+
+def mc_dropout(model: nn.Module, device: torch.device, test_loader: DataLoader, samples=50) -> tuple:
+    """
+    Performs Monte Carlo Dropout to estimate predictive uncertainty by running multiple stochastic forward passes.
+    Returns predicted classes, entropy values, and mean class probabilities.
+    """
     model.to(device)
     model.eval()
     y_true = []
@@ -41,7 +48,11 @@ def mc_dropout(model, device, test_loader, samples=50):
 
 
 
-def main_evaluation(model, device, test_loader, le):
+def main_evaluation(model: nn.Module, device: torch.device, test_loader: DataLoader, le: LabelEncoder):
+    """
+    Evaluates model accuracy on a dataset and prints per-class and overall accuracy statistics.
+    Uses a LabelEncoder to map predictions to class names.
+    """
     model.to(device)
     y_true, y_pred = [], []
 
@@ -70,39 +81,41 @@ def main_evaluation(model, device, test_loader, le):
     print(f"\nOverall accuracy: {overall*100:.2f}%")
 
 def evaluation():
+    """
+    Loads the trained model and dataset splits, then evaluates on both validation and test sets.
+    Also runs MC Dropout to compute uncertainty thresholds for later use in prediction visualization.
+    """
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     df = load_csv()
     le = load_le()
     df_clean = preprocessing(df, le, fit=False)
+    if "val" not in df_clean["subset"].unique():
+        raise ValueError("Run training first before the evaluation!")
+    df_val = df_clean[df_clean["subset"] == "val"].reset_index(drop=True)
     df_test = df_clean[df_clean["subset"] == "test"].reset_index(drop=True)
+    val_loader = create_dataloader(df_val, train=False)
     test_loader = create_dataloader(df_test, train=False)
     num_classes = len(le.classes_)
     model = create_model(num_classes=num_classes, device=device, pretrained=False)
     model = load_state(model, checkpoint_path=MODEL_PATH, device=device)
+    print("**Validation set evaluation**")
+    main_evaluation(model, device, val_loader, le)
+    print("**Test set evaluation**")
     main_evaluation(model, device, test_loader, le)
-    pred, entropy, mean_probs = mc_dropout(model, device, test_loader)
+    pred, entropy, mean_probs = mc_dropout(model, device, val_loader)
     print("\nMC Dropout (first 10 items):")
     print("Top-1 preds:", pred[:10].tolist())
     print("Entropy   :", entropy[:10].tolist())
-    import matplotlib.pyplot as plt
+    entropy_vals = entropy.numpy()
+    print(f"Entropy — min: {entropy_vals.min():.4f}, max: {entropy_vals.max():.4f}, mean: {entropy_vals.mean():.4f}, std: {entropy_vals.std():.4f}")
 
-    plt.figure(figsize=(8, 5))
-    plt.hist(entropy.numpy(), bins=30, color='skyblue', edgecolor='black')
-    plt.xlabel("Predictive Entropy")
-    plt.ylabel("Number of Samples")
-    plt.title("MC Dropout Uncertainty Distribution")
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.show()
-
-    confidences = mean_probs.max(dim=1).values.numpy()
-
-    plt.figure(figsize=(8, 5))
-    plt.scatter(confidences, entropy.numpy(), alpha=0.5, s=10)
-    plt.xlabel("Mean Confidence (Top-1 Probability)")
-    plt.ylabel("Predictive Entropy")
-    plt.title("Confidence vs Uncertainty")
-    plt.grid(True, linestyle='--', alpha=0.6)
-    plt.show()
+    low_thresh = np.percentile(entropy_vals, 33)
+    med_thresh = np.percentile(entropy_vals, 66)
+    print(f"Suggested cutoffs -> Low/Med: {low_thresh:.4f}, Med/High: {med_thresh:.4f}")
+    import math
+    low_thresh_norm = low_thresh / math.log(len(le.classes_))
+    med_thresh_norm = med_thresh / math.log(len(le.classes_))
+    print(f"Normalized thresholds -> Low/Med: {low_thresh_norm:.4f}, Med/High: {med_thresh_norm:.4f}")
 
 
 if __name__ == "__main__":

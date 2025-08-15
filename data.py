@@ -1,21 +1,13 @@
 import pandas as pd
 import os
 from PIL import Image
-import matplotlib.pyplot as plt
-import torch
 from torchvision import transforms
-from torchvision.io import decode_image
 from sklearn.preprocessing import LabelEncoder
 from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
-from tqdm import tqdm
-import time
-import string
-from sklearn.utils.class_weight import compute_class_weight
 from torchvision.transforms import InterpolationMode, RandAugment
-import torch.optim.lr_scheduler as lr_scheduler
-import numpy as np
 import pickle
+from sklearn.model_selection import train_test_split
 from config import CSV_PATH, IMAGE_ROOT, BATCH_SIZE, NUM_WORKERS, PERSISTENT_WORKERS, LABEL_ENCODER_PATH
 
 
@@ -52,12 +44,38 @@ class CustomDataset(Dataset):
             image = self.transform(image)
         return image, label
 
+def splits(df: pd.DataFrame, val_frac=0.15, test_frac=0.15, seed=42, strat_col="encoded_genre") -> pd.DataFrame:
+    """
+    Splits the dataset into train, validation, and test sets with stratification.
+    Returns a copy of the DataFrame with a modified 'subset' column labeling each sample's split.
+    """
+    trainval_idx, test_idx = train_test_split(
+        df.index, test_size=test_frac, stratify=df[strat_col], random_state=seed
+    )
+    val_rel = val_frac / (1.0 - test_frac)
+    train_idx, val_idx = train_test_split(
+        trainval_idx, test_size=val_rel, stratify=df.loc[trainval_idx, strat_col], random_state=seed
+    )
+
+    df = df.copy()
+    df["subset"] = None
+    df.loc[train_idx, "subset"] = "train"
+    df.loc[val_idx, "subset"] = "val"
+    df.loc[test_idx, "subset"] = "test"
+    return df
 
 def load_csv(csv_path=CSV_PATH) -> pd.DataFrame:
+    """
+    Loads the dataset CSV into a pandas DataFrame.
+    """
     df = pd.read_csv(csv_path)
     return df
 
-def preprocessing(df: pd.DataFrame, le: LabelEncoder, fit: bool):
+def preprocessing(df: pd.DataFrame, le: LabelEncoder, fit: bool) -> pd.DataFrame:
+    """
+    Cleans and filters the dataset, merges similar genres, and encodes labels.
+    If 'fit' is True, fits the LabelEncoder, otherwise, transforms with an existing one.
+    """
     pattern = r'^[a-zA-Z0-9\s.,!?;:\'\"@#&$%^*()_+\-=\[\]{}<>/\\|~`]*$'
     safe_genres = {"['Impressionism']", "['Realism']", "['Romanticism']", "['Expressionism']", "['Post Impressionism']",
                 "['Baroque']", "['Art Nouveau Modern']", "['Symbolism']", "['Abstract Expressionism']", "['Northern Renaissance']",
@@ -89,19 +107,30 @@ def preprocessing(df: pd.DataFrame, le: LabelEncoder, fit: bool):
     return df_clean
 
 
-def create_dataloader(data, train: bool, image_root=IMAGE_ROOT, batch_size= BATCH_SIZE, num_workers=NUM_WORKERS, persistent_workers=PERSISTENT_WORKERS):
+def create_dataloader(df, train: bool, image_root=IMAGE_ROOT, batch_size= BATCH_SIZE, num_workers=NUM_WORKERS, persistent_workers=PERSISTENT_WORKERS) -> DataLoader:
+    """
+    Creates a PyTorch DataLoader for the given DataFrame split.
+    Applies training or testing transformations depending on the 'train' flag.
+    """
     if train:
         transform = transform_train
     else:
         transform = transform_test
-    dataset = CustomDataset(data=data, img_dir=image_root, transform=transform)
+
+    dataset = CustomDataset(data=df, img_dir=image_root, transform=transform)
     loader = DataLoader(dataset, batch_size, shuffle = train, num_workers=num_workers, persistent_workers=persistent_workers)
     return loader
 
-def save_le(le, path=LABEL_ENCODER_PATH):
+def save_le(le, path=LABEL_ENCODER_PATH) -> None:
+    """
+    Saves the fitted LabelEncoder to disk using pickle.
+    """
     with open(path, "wb") as f:
         pickle.dump(le, f)
 
-def load_le(path=LABEL_ENCODER_PATH):
+def load_le(path=LABEL_ENCODER_PATH) -> LabelEncoder:
+    """
+    Loads a previously saved LabelEncoder from disk.
+    """
     with open(path, 'rb') as f:
         return pickle.load(f)

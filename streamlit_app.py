@@ -7,8 +7,8 @@ import pickle
 import torch.nn as nn
 import torch.nn.functional as F
 
-LABEL_ENCODER_PATH = "label_encoder.pkl"
-MODEL_PATH = "resnet34_wikiart_uncertainty.pth"
+LABEL_ENCODER_PATH = "models/label_encoder.pkl"
+MODEL_PATH = "models/resnet34_wikiart_uncertainty.pth"
 
 transform_test = transforms.Compose([
     transforms.Resize(256, interpolation=InterpolationMode.BICUBIC, antialias=True),
@@ -92,9 +92,9 @@ def main():
             ent_norm = (entropy[0].item()) / math.log(len(le.classes_))
             conf = mc_conf.max().item()
             st.caption(f"Uncertainty (normalized entropy): {ent_norm:.2f}")
-            if ent_norm <= 0.33:
+            if ent_norm <= 0.2664:
                 st.success(f"Confidence: {conf*100:.1f}% · Uncertainty: {ent_norm:.2f} (low)")
-            elif ent_norm <= 0.66:
+            elif ent_norm <= 0.4860:
                 st.warning(f"Confidence: {conf*100:.1f}% · Uncertainty: {ent_norm:.2f} (medium)")
             else:
                 st.error(f"Confidence: {conf*100:.1f}% · Uncertainty: {ent_norm:.2f} (high)")

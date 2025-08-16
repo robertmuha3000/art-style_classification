@@ -8,9 +8,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import f1_score
 
 
-def mc_dropout(model: nn.Module, device: torch.device, test_loader: DataLoader, samples=50) -> tuple:
+def mc_dropout(model: nn.Module, device: torch.device, test_loader: DataLoader, samples=40) -> tuple:
     """
     Performs Monte Carlo Dropout to estimate predictive uncertainty by running multiple stochastic forward passes.
     Returns predicted classes, entropy values, and mean class probabilities.
@@ -79,6 +80,11 @@ def main_evaluation(model: nn.Module, device: torch.device, test_loader: DataLoa
 
     overall = (y_true == y_pred).mean()
     print(f"\nOverall accuracy: {overall*100:.2f}%")
+
+    f1_weighted = f1_score(y_true, y_pred, average="weighted")
+    f1_macro = f1_score(y_true, y_pred, average="macro")
+    print(f"Weighted F1: {f1_weighted*100:.2f}%")
+    print(f"Macro F1: {f1_macro*100:.2f}%")
 
 def evaluation():
     """

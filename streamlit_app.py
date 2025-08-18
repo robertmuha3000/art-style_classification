@@ -6,6 +6,7 @@ from torchvision.transforms import InterpolationMode
 import pickle
 import torch.nn as nn
 import torch.nn.functional as F
+import json
 
 LABEL_ENCODER_PATH = "models/label_encoder.pkl"
 MODEL_PATH = "models/resnet34_wikiart_uncertainty.pth"
@@ -92,9 +93,14 @@ def main():
             ent_norm = (entropy[0].item()) / math.log(len(le.classes_))
             conf = mc_conf.max().item()
             st.caption(f"Uncertainty (normalized entropy): {ent_norm:.2f}")
-            if ent_norm <= 0.2664:
+            with open("data/data.json", "r") as f:
+                thresholds = json.load(f)
+
+            low = thresholds["low"]
+            med = thresholds["med"]
+            if ent_norm <= low:
                 st.success(f"Confidence: {conf*100:.1f}% · Uncertainty: {ent_norm:.2f} (low)")
-            elif ent_norm <= 0.4860:
+            elif ent_norm <= med:
                 st.warning(f"Confidence: {conf*100:.1f}% · Uncertainty: {ent_norm:.2f} (medium)")
             else:
                 st.error(f"Confidence: {conf*100:.1f}% · Uncertainty: {ent_norm:.2f} (high)")

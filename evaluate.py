@@ -9,9 +9,10 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import f1_score
+import json
 
 
-def mc_dropout(model: nn.Module, device: torch.device, test_loader: DataLoader, samples=40) -> tuple:
+def mc_dropout(model: nn.Module, device: torch.device, test_loader: DataLoader, samples=50) -> tuple:
     """
     Performs Monte Carlo Dropout to estimate predictive uncertainty by running multiple stochastic forward passes.
     Returns predicted classes, entropy values, and mean class probabilities.
@@ -122,6 +123,13 @@ def evaluation():
     low_thresh_norm = low_thresh / math.log(len(le.classes_))
     med_thresh_norm = med_thresh / math.log(len(le.classes_))
     print(f"Normalized thresholds -> Low/Med: {low_thresh_norm:.4f}, Med/High: {med_thresh_norm:.4f}")
+    streamlit_thresh = {
+    "low": float(low_thresh_norm),
+    "med": float(med_thresh_norm)
+    }
+    with open('data/data.json', 'w') as f:
+        json.dump(streamlit_thresh, f, indent=4)
+
 
 
 if __name__ == "__main__":

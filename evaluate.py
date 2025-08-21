@@ -49,7 +49,6 @@ def mc_dropout(model: nn.Module, device: torch.device, test_loader: DataLoader, 
     return pred, entropy, mean_probs
 
 
-
 def main_evaluation(model: nn.Module, device: torch.device, test_loader: DataLoader, le: LabelEncoder):
     """
     Evaluates model accuracy on a dataset and prints per-class and overall accuracy statistics.

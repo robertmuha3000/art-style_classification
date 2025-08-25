@@ -88,7 +88,7 @@ def main():
 
             st.subheader("Predictions")
             for p, idx in zip(mc_top_probs.tolist(), mc_top_idxs.tolist()):
-                st.write(f"**{le.classes_[idx]}** — {p * 100:.2f}%")
+                st.write(f"**{le.classes_[idx][2:-2]}** — {p * 100:.2f}%")
             import math
             ent_norm = (entropy[0].item()) / math.log(len(le.classes_))
             conf = mc_conf.max().item()
